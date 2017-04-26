@@ -93,6 +93,13 @@ final class VariableTest extends TestCase
     $this->assertEquals(7, $var->cur_domain_size());
   }
 
+  public function testCurDomainSize2()
+  {
+    $var = new Variable('var1', [1, 2, 3, 4, 5, 6]);
+    $var->assign(1);
+    $this->assertEquals(1, $var->cur_domain_size());
+  }
+
   public function testRestoreCurdom()
   {
     $var = new Variable('var1', ['one', 'two', 'three']);

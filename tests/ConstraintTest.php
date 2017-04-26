@@ -113,10 +113,32 @@ final class ConstraintTest extends TestCase
 
   public function testHasSupport()
   {
+    for ($i = 1; $i < 3; $i++) {
+      $this->c->get_scope()[$i]->assign($i);
+    }
     $var = $this->c->get_scope()[0];
+    $this->assertEquals(1, $this->c->get_scope()[2]->cur_domain_size());
     $this->assertTrue(
-      $this->c->has_support_sudoku($var, 3)
+      $this->c->has_support_sudoku($var, 5)
     );
+  }
+
+  public function testDeepCopy()
+  {
+    $scope = [];
+    for ($i = 0; $i < 9; $i++) {
+      $scope[] = new Variable('var' . $i, [1,2,3,4,5,6,7,8,9]);
+    }
+    // Deep copy.
+    $scopecpy = [];
+    foreach ($scope as $k => $v) {
+      $scopecpy[$k] = clone $v;
+    }
+
+    $con2 = new Constraint('con2', $scope);
+    // Mess with the copy, not the original.
+    $scopecpy[0]->prune_value(2);
+    $this->assertTrue($con2->check_sudoku([2,9,6,3,1,8,5,7,4]));
   }
 }
 ?>

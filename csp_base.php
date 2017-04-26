@@ -90,7 +90,7 @@ class Variable
   }
 
   public function cur_domain_size() {
-    if ($this->is_assigned) {
+    if ($this->is_assigned()) {
       return 1;
     }
     return array_sum($this->curdom);
@@ -238,7 +238,28 @@ class Constraint
     * Specific to sudoku, checks if a partial board can be solved.
     */
   public function has_support_sudoku($var, $val) {
-    if (in_array($var, $this->scope) && in_array($val, $var->cur_domain())) {
+    if (in_array($var, $this->scope) && $var->in_cur_domain($val)) {
+      // Create a deep copy of this constraint's scope
+      $scopecpy = [];
+      foreach ($this->scope as $k => $v) {
+        $scopecpy[$k] = clone $v;
+      }
+
+      // Build vals, the array to pass into the duplicate checker.
+      unset($scopecpy[array_search($var, $scopecpy)]);
+      $vals = [$val];
+
+      while (!empty($scopecpy)) {
+        foreach ($scopecpy as $k => $v) {
+          if ($v->cur_domain_size() === 1) {
+            // Add to vals
+            $vals[] = $v->cur_domain()[0];
+            unset($scopecpy[$k]);
+            
+          }
+        }
+      }
+
       return True;
     }
     return False;
