@@ -51,6 +51,19 @@ final class ConstraintTest extends TestCase
     );
   }
 
+  public function testGetUnasgnVars()
+  {
+    $this->c->get_scope()[0]->assign(1);
+    $scopecpy = [];
+    for ($i = 1; $i < 3; $i++) {
+      $scopecpy[] = new Variable('var' . $i, [1,2,3,4,5]);
+    }
+    $this->assertEquals(
+      $scopecpy,
+      $this->c->get_unasgn_vars()
+    );
+  }
+
   public function testTupleIsValid()
   {
     $this->assertTrue(

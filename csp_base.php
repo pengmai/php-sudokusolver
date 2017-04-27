@@ -179,36 +179,6 @@ class Constraint
     }
 
     return $this->sudoku_ok($vals);
-    /*$matrix = array_chunk($vals, 9);
-
-    // Check rows.
-    foreach ($matrix as $row) {
-      if (!$this->sudoku_ok($row)) {
-        return False;
-      }
-    }
-    // Check columns.
-    for ($i = 0; $i < count($matrix); $i++) {
-      if (!$this->sudoku_ok(array_column($matrix, $i))) {
-        return False;
-      }
-    }
-    // Check squares.
-    for ($i = 0; $i < count($matrix); $i++) {
-      $xStart = floor($i / 3) * 3;
-      $yStart = ($i % 3) * 3;
-      $line = [];
-
-      for ($x = $xStart; $x < $xStart + 3; $x++) {
-        for ($y = $yStart; $y < $yStart + 3; $y++) {
-          $line[] = $matrix[$x][$y];
-        }
-      }
-      if (!$this->sudoku_ok($line)) {
-        return False;
-      }
-    }
-    return True;*/
   }
 
   private function sudoku_ok($line) {
@@ -221,12 +191,25 @@ class Constraint
     */
   public function get_n_unasgn() {
     $n = 0;
-    foreach($this->scope as $v) {
+    foreach ($this->scope as $v) {
       if (!$v->is_assigned()) {
         $n++;
       }
     }
     return $n;
+  }
+
+  /*
+   * Return list of unassigned variables in the constraint's scope.
+   */
+  public function get_unasgn_vars() {
+    $vars = [];
+    foreach ($this->scope as $v) {
+      if (!$v->is_assigned()) {
+        $vars[] = $v;
+      }
+    }
+    return $vars;
   }
 
   /**
