@@ -278,4 +278,83 @@ class Constraint
     return True;
   }
 }
+
+/**
+ * A class for packing up a set of variables into a CSP problem. It contains
+ * various utility routines for accessing the problem. The variables of the csp
+ * can be added later or on initialization. The constraints must be added later.
+ */
+class CSP
+{
+  private $name;
+  private $vars;
+  private $cons;
+  private $vars_to_cons;
+
+  public function __construct ($name, $vars) {
+    $this->name = $name;
+    $this->vars = [];
+    $this->cons = [];
+    $this->vars_to_cons = [];
+    foreach ($vars as $v) {
+      $this->add_var($v);
+    }
+  }
+
+  /**
+   * Add variable object to CSP while setting up an index to obtain the
+   * constraints over this variable.
+   */
+  public function add_var($var) {
+    if (!($var instanceof Variable)) {
+      throw new Exception ("Trying to add non variable to CSP object");
+    } else if (array_key_exists($var->name(), $this->vars_to_cons)) {
+      throw new Exception ("Trying to add variable to CSP object that already".
+                           " has it");
+    } else {
+      $this->vars[] = $var;
+      $this->vars_to_cons[$var->name()] = [];
+    }
+  }
+
+  /**
+   * Add constraint to CSP. Note that all variables in the scope must already
+   * have been added to the CSP.
+   */
+   public function add_constraint($c) {
+     if (!($c instanceof Constraint)) {
+       throw new Exception ("Trying to add non constraint to CSP object");
+     } else {
+       foreach ($c->get_scope() as $v) {
+         if (!(in_array($v, $this->vars))) {
+           throw new Exception ("Trying to add constraint with unknown " .
+                                "variables to CSP object");
+         }
+         $this->vars_to_cons[$v->name()][] = $c;
+       }
+       $this->cons[] = $c;
+     }
+   }
+
+   /**
+    * Return the list of all constraints in the CSP.
+    */
+   public function get_all_cons() {
+     return $this->cons;
+   }
+
+   /**
+    * Return the list of constraints that include var in their scope.
+    */
+   public function get_all_cons_with_var($var) {
+     return $this->vars_to_cons[$var->name()];
+   }
+
+   /**
+    * Return the list of variables in the CSP.
+    */
+   public function get_all_vars() {
+     return $this->vars;
+   }
+}
 ?>
