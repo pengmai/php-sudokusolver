@@ -221,12 +221,6 @@ class Constraint
     */
   public function has_support_sudoku($var, $val) {
     if (in_array($var, $this->scope) && $var->in_cur_domain($val)) {
-      // Store each domain of each variable in a 2D array.
-      // Set given variable and any other set variables.
-      // Prune values from the remaining domains until there are no variables
-      // left to set.
-      // If any of the domains are empty, DWO. Otherwise, return True.
-
       // Store each domain of each variable in a 2D array, pruning the entered
       // value as it's copied.
       $domains = [];
@@ -235,7 +229,6 @@ class Constraint
           $domains[] = array_diff($v->cur_domain(), [$val]);
         }
       }
-
       // Prune values from the remaining domains until there are no variables
       // left to set.
       $can_prune = True;
@@ -259,7 +252,6 @@ class Constraint
             }
           }
         }
-
         // Check to see if further pruning can occur.
         foreach($domains as $w) {
           if (count($w) === 1) {
@@ -267,18 +259,7 @@ class Constraint
             break;
           }
         }
-
-        // Assign variables with only one possible value left and check if
-        // further pruning can be done.
-        /*$can_prune = False;
-        foreach($vars as $v) {
-          if ($v->cur_domain_size() === 1 && !$v->is_assigned()) {
-            $can_prune = True;
-            $v->assign($v->cur_domain()[0]);
-          }
-        }*/
       }
-
       return True;
     }
     return False;
