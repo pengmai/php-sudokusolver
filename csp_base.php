@@ -125,7 +125,7 @@ class Variable
     $this->assignedValue = NULL;
   }
 
-  private function get_assigned_value() {
+  public function get_assigned_value() {
     return $this->assignedValue;
   }
 
@@ -178,8 +178,7 @@ class Constraint
       }
     }
 
-    return (count($vals) == 9 &&
-            array_sum($vals) === array_sum(array_unique($vals)));
+    return $this->sudoku_ok($vals);
     /*$matrix = array_chunk($vals, 9);
 
     // Check rows.
@@ -212,10 +211,10 @@ class Constraint
     return True;*/
   }
 
-  /*private function sudoku_ok($line) {
+  private function sudoku_ok($line) {
     return (count($line) == 9 &&
             array_sum($line) === array_sum(array_unique($line)));
-  }*/
+  }
 
   /**
     * Return the number of unassigned variables in the constraint.
@@ -239,23 +238,45 @@ class Constraint
     */
   public function has_support_sudoku($var, $val) {
     if (in_array($var, $this->scope) && $var->in_cur_domain($val)) {
-      // Create a deep copy of this constraint's scope
-      $scopecpy = [];
+      // Store each domain of each variable in a 2D array.
+      // Set given variable and any other set variables.
+      // Prune values from the remaining domains until there are no variables
+      // left to set.
+      // If any of the domains are empty, DWO. Otherwise, return True.
+      $vars = [];
       foreach ($this->scope as $k => $v) {
-        $scopecpy[$k] = clone $v;
+        $vars[$k] = clone $v;
+        if ($k === $var) {
+          $vars[$k]->assign($val);
+        }
       }
 
-      // Build vals, the array to pass into the duplicate checker.
-      unset($scopecpy[array_search($var, $scopecpy)]);
-      $vals = [$val];
+      // Prune values from the remaining domains until there are no variables
+      // left to set.
+      $can_prune = True;
+      while ($can_prune) {
+        // Prune the values of the assigned variables.
+        foreach($vars as $v) {
+          if ($v->is_assigned()) {
+            // Remove it from the current domains of all unassigned variables.
+            foreach($vars as $w) {
+              if (!$w->is_assigned()) {
+                $w->prune_value($v->get_assigned_value());
+                if ($w->cur_domain_size() === 0) {
+                  return False;
+                }
+              }
+            }
+          }
+        }
 
-      while (!empty($scopecpy)) {
-        foreach ($scopecpy as $k => $v) {
-          if ($v->cur_domain_size() === 1) {
-            // Add to vals
-            $vals[] = $v->cur_domain()[0];
-            unset($scopecpy[$k]);
-            
+        // Assign variables with only one possible value left and check if
+        // further pruning can be done.
+        $can_prune = False;
+        foreach($vars as $v) {
+          if ($v->cur_domain_size() === 1 && !$v->is_assigned()) {
+            $can_prune = True;
+            $v->assign($v->cur_domain()[0]);
           }
         }
       }
