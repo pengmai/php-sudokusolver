@@ -117,10 +117,79 @@ final class ConstraintTest extends TestCase
       $this->c->get_scope()[$i]->assign($i);
     }
     $var = $this->c->get_scope()[0];
-    $this->assertEquals(1, $this->c->get_scope()[2]->cur_domain_size());
-    $this->assertTrue(
-      $this->c->has_support_sudoku($var, 5)
+    $this->assertTrue($this->c->has_support_sudoku($var, 5));
+  }
+
+  public function testHasSupport2()
+  {
+    for ($i = 1; $i < 3; $i++) {
+      $this->c->get_scope()[$i]->assign($i);
+    }
+    $var = $this->c->get_scope()[0];
+    $this->assertFalse(
+      $this->c->has_support_sudoku($var, 1)
     );
+  }
+
+  public function testHasSupport3()
+  {
+    $var = $this->row->get_scope()[0];
+    $var->assign(1);
+    $this->assertFalse($this->row->has_support_sudoku($var, 2));
+  }
+
+  public function testHasSupport4()
+  {
+    $var = $this->row->get_scope()[0];
+    $var->assign(1);
+    $this->assertFalse($this->row->has_support_sudoku($var, 1));
+  }
+
+  public function testHasSupport5()
+  {
+    $var = $this->c->get_scope()[0];
+    $this->c->get_scope()[1]->assign(2);
+    $this->c->get_scope()[2]->assign(2);
+    $this->assertFalse($this->c->has_support_sudoku($var, 1));
+  }
+
+  public function testHasSupportValidRow()
+  {
+    $var = $this->row->get_scope()[0];
+    $vals = [0, 0, 0, 0, 9, 2, 3, 0, 1];
+    for ($i = 1; $i < count($vals); $i++) {
+      if ($vals[i]) {
+        $this->row->get_scope()[$i].assign($vals[$i]);
+      }
+    }
+
+    $this->assertTrue($this->row->has_support_sudoku($var, 5));
+  }
+
+  public function testHasSupportInvalidRow()
+  {
+    $var = $this->row->get_scope()[0];
+    $vals = [0, 0, 0, 0, 9, 2, 2, 0, 1];
+    for ($i = 1; $i < count($vals); $i++) {
+      if ($vals[$i]) {
+        $this->row->get_scope()[$i]->assign($vals[$i]);
+      }
+    }
+
+    $this->assertFalse($this->row->has_support_sudoku($var, 5));
+  }
+
+  public function testHasSupportInvalidValue()
+  {
+    $var = $this->row->get_scope()[0];
+    $vals = [0, 0, 0, 0, 9, 2, 3, 0, 1];
+    for ($i = 1; $i < count($vals); $i++) {
+      if ($vals[$i]) {
+        $this->row->get_scope()[$i]->assign($vals[$i]);
+      }
+    }
+
+    $this->assertFalse($this->row->has_support_sudoku($var, 9));
   }
 
   public function testDeepCopy()

@@ -243,11 +243,13 @@ class Constraint
       // Prune values from the remaining domains until there are no variables
       // left to set.
       // If any of the domains are empty, DWO. Otherwise, return True.
-      $vars = [];
+
+      // Store each domain of each variable in a 2D array, pruning the entered
+      // value as it's copied.
+      $domains = [];
       foreach ($this->scope as $k => $v) {
-        $vars[$k] = clone $v;
-        if ($k === $var) {
-          $vars[$k]->assign($val);
+        if ($var !== $k) {
+          $domains[] = array_diff($v->cur_domain(), [$val]);
         }
       }
 
@@ -255,30 +257,43 @@ class Constraint
       // left to set.
       $can_prune = True;
       while ($can_prune) {
+        $can_prune = False;
         // Prune the values of the assigned variables.
-        foreach($vars as $v) {
-          if ($v->is_assigned()) {
+        foreach($domains as $k => $dom) {
+          if (empty($dom)) {
+            return False; // Domain Wipe Out
+          } else if (count($dom) === 1) {
             // Remove it from the current domains of all unassigned variables.
-            foreach($vars as $w) {
-              if (!$w->is_assigned()) {
-                $w->prune_value($v->get_assigned_value());
-                if ($w->cur_domain_size() === 0) {
-                  return False;
+            $value = $dom[0];
+            unset($domains[$k]);
+            foreach($domains as $w) {
+              if (in_array($value, $w)) {
+                unset($w[array_search($value, $w)]);
+                if (empty($w)) {
+                  return False; // Domain Wipe Out
                 }
               }
             }
           }
         }
 
+        // Check to see if further pruning can occur.
+        foreach($domains as $w) {
+          if (count($w) === 1) {
+            $can_prune = True;
+            break;
+          }
+        }
+
         // Assign variables with only one possible value left and check if
         // further pruning can be done.
-        $can_prune = False;
+        /*$can_prune = False;
         foreach($vars as $v) {
           if ($v->cur_domain_size() === 1 && !$v->is_assigned()) {
             $can_prune = True;
             $v->assign($v->cur_domain()[0]);
           }
-        }
+        }*/
       }
 
       return True;
