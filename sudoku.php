@@ -6,6 +6,6 @@
  *
  * Written by Jacob Mai Peng.
  */
-
+ echo microtime(True);
 
 ?>

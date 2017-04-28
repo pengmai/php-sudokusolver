@@ -1,4 +1,5 @@
 <?php
+//require 'minPQ.php';
 /**
   * A class for defining CSP variables.
   */
@@ -356,5 +357,118 @@ class CSP
    public function get_all_vars() {
      return $this->vars;
    }
+}
+
+/**
+ * Class to encapsulate things like statistics and bookkeeping for pruning
+ * variable domains.
+ */
+class BT
+{
+  private $csp;
+  private $nDecisions;
+  private $nPrunings;
+  private $unasgn_vars;
+  private $TRACE;
+  private $runtime;
+
+  public function __construct($csp) {
+    $this->csp = $csp;
+    $this->nDecisions = 0; // Number of variable assignments made during search.
+    $this->nPrunings = 0; // Number of value prunings during search.
+    $this->unasgn_vars = [];
+    $this->TRACE = False;
+    $this->runtime = 0;
+  }
+
+  /**
+   * Turn search trace on.
+   */
+  public function trace_on() {
+    $this->TRACE = True;
+  }
+
+  /**
+   * Turn search trace off.
+   */
+  public function trace_off() {
+    $this->TRACE = False;
+  }
+
+  /**
+   * Initialize counters.
+   */
+  public function clear_stats() {
+    $this->nDecisions = 0;
+    $this->nPrunings = 0;
+    $this->runtime = 0;
+  }
+
+  public function print_stats() {
+    print ("Search made {$nDecisions} variable assignments and pruned " .
+           "{$nPrunings} variable values.");
+  }
+
+  /**
+   * Restore a list of values to variable domains. Each item in prunings goes
+   * value => variable.
+   */
+  public function restore_values($prunings) {
+    foreach ($prunings as $val => $var) {
+      $var->unprune_value($val);
+    }
+  }
+
+  /**
+   * Reinitialize all variable domains.
+   */
+  public function restore_all_variable_domains() {
+    foreach ($this->csp->get_all_vars() as $var) {
+      if ($var->is_assigned()) {
+        $var->unassign();
+      }
+      $var->restore_curdom();
+    }
+  }
+
+  /**
+   * Remove variable with the smallest current domain from the list of
+   * unassigned variables.
+   */
+  public function extract_mrv_var() {
+    $max_d = PHP_INT_MAX;
+    $max_v;
+    $mk;
+
+    foreach ($this->unasgn_vars as $k => $var) {
+      if ($var->cur_domain_size() < $max_d) {
+        $max_d = $var->cur_domain_size();
+        $max_v = $var;
+        $mk = $k;
+      }
+    }
+    unset($this->unasgn_vars[$k]);
+    return $max_v;
+  }
+
+  /**
+   * Add variable back to the list of unassigned variables.
+   */
+  public function restore_unasgn_var($var) {
+    $this->unasgn_vars[] = $var;
+  }
+
+  public function bt_search() {
+    $this->clear_stats();
+    //do time stuff here
+
+    $this->restore_all_variable_domains();
+    $this->unasgn_vars = [];
+    foreach ($this->csp->get_all_vars() as $v) {
+      if (!$v->is_assigned()) {
+        $this->unasgn_vars[] = $var;
+      }
+    }
+  }
 }
 ?>

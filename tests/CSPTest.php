@@ -27,14 +27,15 @@ final class CSPTest extends TestCase
 
   public function testAddVarWithInvalidInput()
   {
-    $this->expectException(Exception);
+    $this->expectExceptionMessage("Trying to add non variable to CSP object");
     $var = [1, 2, 3];
     $this->csp->add_var($var);
   }
 
   public function testAddVarAlreadyAdded()
   {
-    $this->expectException(Exception);
+    $this->expectExceptionMessage("Trying to add variable to CSP object that " .
+                                  "already has it");
     $var = $this->vars[0];
     $this->csp->add_var($var);
   }
@@ -49,9 +50,17 @@ final class CSPTest extends TestCase
     );
   }
 
+  public function testAddConstraintWithInvalidInput()
+  {
+    $this->expectExceptionMessage("Trying to add non constraint to CSP object");
+    $con = [];
+    $this->csp->add_constraint($con);
+  }
+
   public function testAddConstraintWithUnknownVariable()
   {
-    $this->expectException(Exception);
+    $this->expectExceptionMessage("Trying to add constraint with unknown " .
+                                  "variables to CSP object");
     $scope = $this->vars;
     $scope[] = new Variable('varx', [1, 2, 3]);
     $con = new Constraint('con1', $scope);
