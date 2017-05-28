@@ -124,7 +124,11 @@ final class ConstraintTest extends TestCase
     $this->assertFalse($this->row->check_sudoku($vals));
   }
 
-  public function testHasSupport()
+  /**
+   * Tests that a constraint with exactly 1 unassigned variable has the support
+   * of a value distinct from any of the assigned variables' values.
+   */
+  public function testHasSupportSuccess()
   {
     for ($i = 1; $i < 3; $i++) {
       $this->c->get_scope()[$i]->assign($i);
@@ -133,6 +137,10 @@ final class ConstraintTest extends TestCase
     $this->assertTrue($this->c->has_support_sudoku($var, 5));
   }
 
+  /**
+   * Tests that a constraint with exactly 1 unassigned variable does not have
+   * the support of another (assigned) variable's value.
+   */
   public function testHasSupport2()
   {
     for ($i = 1; $i < 3; $i++) {
@@ -144,18 +152,25 @@ final class ConstraintTest extends TestCase
     );
   }
 
-  public function testHasSupport3()
+  /**
+   * Tests that an assigned variable doesn't have the support of a different
+   * value.
+   */
+  public function testHasSupportAssignedVariableDifferentValue()
   {
     $var = $this->row->get_scope()[0];
     $var->assign(1);
     $this->assertFalse($this->row->has_support_sudoku($var, 2));
   }
 
-  public function testHasSupport4()
+  /**
+   * Tests that an assigned variable has the support of its assigned value.
+   */
+  public function testHasSupportAssignedVariableSameValue()
   {
-    $var = $this->row->get_scope()[0];
+    $var = $this->c->get_scope()[0];
     $var->assign(1);
-    $this->assertFalse($this->row->has_support_sudoku($var, 1));
+    $this->assertTrue($this->c->has_support_sudoku($var, 1));
   }
 
   public function testHasSupport5()
@@ -166,13 +181,29 @@ final class ConstraintTest extends TestCase
     $this->assertFalse($this->c->has_support_sudoku($var, 1));
   }
 
+  public function testHasSupportMutating()
+  {
+    // Tests to ensure that has_support_sudoku is not changing the variable
+    // cur_domains.
+    $var = $this->c->get_scope()[0];
+    $var2 = $this->c->get_scope()[1];
+
+    $var2->assign(1);
+    $before1 = $var->cur_domain();
+    $before2 = $var2->cur_domain();
+    $this->c->has_support_sudoku($var, 1);
+
+    $this->assertEquals($before1, $var->cur_domain());
+    $this->assertEquals($before2, $var2->cur_domain());
+  }
+
   public function testHasSupportValidRow()
   {
     $var = $this->row->get_scope()[0];
     $vals = [0, 0, 0, 0, 9, 2, 3, 0, 1];
     for ($i = 1; $i < count($vals); $i++) {
-      if ($vals[i]) {
-        $this->row->get_scope()[$i].assign($vals[$i]);
+      if ($vals[$i]) {
+        $this->row->get_scope()[$i]->assign($vals[$i]);
       }
     }
 

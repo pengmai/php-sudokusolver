@@ -22,6 +22,7 @@ class Variable
   public function add_domain_values($values) {
     foreach ($values as $value) {
       $this->dom[] = $value;
+      $this->curdom[] = True;
     }
   }
 
@@ -113,8 +114,8 @@ class Variable
     */
   public function assign($value) {
     if ($this->is_assigned() || !($this->in_cur_domain($value))) {
-      throw new Exception("Trying to assign variable that is already assigned
-                           or illegal (not in curdom)");
+      throw new Exception("Trying to assign variable that is already assigned ".
+                          "or illegal (not in curdom)");
     }
     $this->assignedValue = $value;
   }
@@ -141,6 +142,14 @@ class Variable
 
   public function name() {
     return $this->name;
+  }
+
+  public function print_all() {
+    print "Variable " . $this->name . ": Dom = ";
+    print_r($this->dom);
+    print "CurDom = ";
+    print_r($this->curdom);
+    print "\n";
   }
 }
 
@@ -226,8 +235,8 @@ class Constraint
       // value as it's copied.
       $domains = [];
       foreach ($this->scope as $k => $v) {
-        if ($var !== $k) {
-          $domains[] = array_diff($v->cur_domain(), [$val]);
+        if ($var !== $v) {
+          $domains[] = array_values(array_diff($v->cur_domain(), [$val]));
         }
       }
       // Prune values from the remaining domains until there are no variables
@@ -243,9 +252,11 @@ class Constraint
             // Remove it from the current domains of all unassigned variables.
             $value = $dom[0];
             unset($domains[$k]);
+            array_values($domains);
             foreach($domains as $w) {
               if (in_array($value, $w)) {
                 unset($w[array_search($value, $w)]);
+                array_values($w);
                 if (empty($w)) {
                   return False; // Domain Wipe Out
                 }
@@ -322,41 +333,55 @@ class CSP
    * Add constraint to CSP. Note that all variables in the scope must already
    * have been added to the CSP.
    */
-   public function add_constraint($c) {
-     if (!($c instanceof Constraint)) {
-       throw new Exception ("Trying to add non constraint to CSP object");
-     } else {
-       foreach ($c->get_scope() as $v) {
-         if (!(in_array($v, $this->vars))) {
-           throw new Exception ("Trying to add constraint with unknown " .
-                                "variables to CSP object");
-         }
-         $this->vars_to_cons[$v->name()][] = $c;
-       }
-       $this->cons[] = $c;
-     }
-   }
+  public function add_constraint($c) {
+    if (!($c instanceof Constraint)) {
+      throw new Exception ("Trying to add non constraint to CSP object");
+    } else {
+      foreach ($c->get_scope() as $v) {
+        if (!(in_array($v, $this->vars))) {
+          throw new Exception ("Trying to add constraint with unknown " .
+                               "variables to CSP object");
+        }
+        $this->vars_to_cons[$v->name()][] = $c;
+      }
+      $this->cons[] = $c;
+    }
+  }
 
-   /**
-    * Return the list of all constraints in the CSP.
-    */
-   public function get_all_cons() {
-     return $this->cons;
-   }
+  /**
+   * Return the list of all constraints in the CSP.
+   */
+  public function get_all_cons() {
+    return $this->cons;
+  }
 
-   /**
-    * Return the list of constraints that include var in their scope.
-    */
-   public function get_all_cons_with_var($var) {
-     return $this->vars_to_cons[$var->name()];
-   }
+  /**
+   * Return the list of constraints that include var in their scope.
+   */
+  public function get_all_cons_with_var($var) {
+    return $this->vars_to_cons[$var->name()];
+  }
 
-   /**
-    * Return the list of variables in the CSP.
-    */
-   public function get_all_vars() {
-     return $this->vars;
-   }
+  /**
+   * Return the list of variables in the CSP.
+   */
+  public function get_all_vars() {
+    return $this->vars;
+  }
+
+  /**
+   * Prints the solution to the CSP.
+   */
+  public function print_soln() {
+    print "CSP $this->name Assignments = \n";
+    $board = array_chunk($this->vars, 9);
+    for ($i = 0; $i < 9; $i++) {
+      for ($j = 0; $j < 9; $j++) {
+        print $board[$i][$j]->get_assigned_value() . ' ';
+      }
+      print "\n";
+    }
+  }
 }
 
 /**
@@ -410,12 +435,12 @@ class BT
   }
 
   /**
-   * Restore a list of values to variable domains. Each item in prunings goes
-   * value => variable.
+   * Restore a list of values to variable domains. Prunings is an array of
+   * [variable, value] pairs.
    */
   public function restore_values($prunings) {
-    foreach ($prunings as $val => $var) {
-      $var->unprune_value($val);
+    foreach ($prunings as $tup) {
+      $tup[0]->unprune_value($tup[1]);
     }
   }
 
@@ -447,7 +472,8 @@ class BT
         $mk = $k;
       }
     }
-    unset($this->unasgn_vars[$k]);
+    unset($this->unasgn_vars[$mk]);
+    array_values($this->unasgn_vars);
     return $max_v;
   }
 
@@ -460,15 +486,138 @@ class BT
 
   public function bt_search() {
     $this->clear_stats();
-    //do time stuff here
+    $start_time = microtime(True);
 
     $this->restore_all_variable_domains();
+
     $this->unasgn_vars = [];
     foreach ($this->csp->get_all_vars() as $v) {
       if (!$v->is_assigned()) {
-        $this->unasgn_vars[] = $var;
+        $this->unasgn_vars[] = $v;
       }
     }
+
+    // Initiail propagate with no assigned variables.
+    $status = $this->prop_GAC();
+    $this->nPrunings += count($status[1]);
+
+    if ($this->TRACE) {
+      print count($this->unasgn_vars) . " unassigned variables at start of the "
+            . "search\n";
+      print "Root prunings: ";
+      print_r ($status[1]);
+      print "\n";
+    }
+
+    if (!$status[0]) {
+      print "CSP detected contradiction at root\n";
+    } else {
+      $status[0] = $this->bt_recurse(1);
+    }
+
+    $this->restore_values($status[1]);
+    if (!$status[0]) {
+      print "CSP unsolved. Has no solutions.\n";
+    } else {
+      $delta_time = microtime(True) - $start_time;
+      print "CSP solved. CPU Time used = {$delta_time}\n";
+      $this->csp->print_soln();
+    }
+  }
+
+  /**
+   * Return true if a solution is found, false if still need to search. If the
+   * top level returns false, the problem has no solution.
+   */
+  public function bt_recurse($level) {
+    if ($this->TRACE) {
+      print "bt_recurse level {$level}";
+    }
+
+    if (empty($this->unasgn_vars)) {
+      // All variables assigned
+      return True;
+    } else {
+      $var = $this->extract_mrv_var();
+      if ($this->TRACE) {
+        print "bt_recurse var = {$var->print_all()}";
+      }
+      foreach ($var->cur_domain() as $val) {
+        if ($this->TRACE) {
+          print "bt_recurse trying {$var->print_all()} = {$val}";
+        }
+
+        $var->assign($val);
+        $this->nDecisions++;
+
+        $status = $this->prop_GAC($var);
+        $this->nPrunings += count($status[1]);
+
+        if ($this->TRACE) {
+          print "bt_recurse prop status = " . $status[0];
+          print "bt_recurse prop pruned = ";
+          print_r($status[1]);
+        }
+
+        if ($status[0]) {
+          if ($this->bt_recurse($level + 1)) {
+            return True;
+          }
+        }
+
+        if ($this->TRACE) {
+          print "bt_recurse restoring ";
+          print_r($status[1]);
+        }
+        $this->restore_values($status[1]);
+        $var->unassign();
+      }
+
+      $this->restore_unasgn_var($var);
+      return False;
+    }
+  }
+
+  /**
+   * Do GAC propagation. If newVar is None we do initial GAC enforce processing
+   * all constraints. Otherwise we do GAC enforce with constraints containing
+   * newVar on GAC Queue.
+   */
+  public function prop_GAC($var = null) {
+    if (is_null($var)) {
+      $GACStack = $this->csp->get_all_cons();
+    } else {
+      $GACStack = $this->csp->get_all_cons_with_var($var);
+    }
+
+    return $this->enforce_GAC($GACStack);
+  }
+
+  public function enforce_GAC($GACStack) {
+    $pruned = [];
+    while (!empty($GACStack)) {
+      $c = array_pop($GACStack);
+      foreach ($c->get_scope() as $var) {
+        foreach ($var->cur_domain() as $val) {
+          if (!$c->has_support_sudoku($var, $val)) {
+            $var->prune_value($val);
+            $pruned[] = [$var, $val];
+            if ($var->cur_domain_size() === 0) {
+              // Empty GACStack and return DWO
+              $GACStack = [];
+              return [False, $pruned];
+            } else {
+              foreach ($this->csp->get_all_cons_with_var($var) as $cprime) {
+                if (!in_array($cprime, $GACStack)) {
+                  $GACStack[] = $cprime;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return [True, $pruned];
   }
 }
 ?>

@@ -116,14 +116,17 @@ final class VariableTest extends TestCase
 
   public function testAssign()
   {
-    $this->expectException(Exception);
+    $this->expectExceptionMessage("Trying to assign variable that is already " .
+                                  "assigned or illegal (not in curdom)");
+    // Cannot assign value outside of domain.
     $var = new Variable('var1', ['one', 'two', 'three']);
     $var->assign('four');
   }
 
   public function testAssign2()
   {
-    $this->expectException(Exception);
+    $this->expectExceptionMessage("Trying to assign variable that is already " .
+                                  "assigned or illegal (not in curdom)");
     $var = new Variable('var1', ['one', 'two', 'three']);
     // Variable already assigned.
     $var->assign('one');
@@ -132,7 +135,8 @@ final class VariableTest extends TestCase
 
   public function testAssign3()
   {
-    $this->expectException(Exception);
+    $this->expectExceptionMessage("Trying to assign variable that is already " .
+                                  "assigned or illegal (not in curdom)");
     $var = new Variable('var1', ['one', 'two', 'three']);
     // Variable already assigned.
     $var->assign('one');
@@ -141,7 +145,9 @@ final class VariableTest extends TestCase
 
   public function testUnassign()
   {
-    $this->expectException(Exception);
+    // Cannot unassign a variable that has not been assigned.
+    $this->expectExceptionMessage("Trying to unassign variable that is not " .
+                                  "assigned");
     $var = new Variable('var1', [1, 2, 3, 4, 5, 6, 7, 8, 9]);
     $var->unassign();
   }
