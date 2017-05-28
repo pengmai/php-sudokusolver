@@ -1,5 +1,4 @@
 <?php
-//require 'minPQ.php';
 /**
   * A class for defining CSP variables.
   */
