@@ -381,6 +381,17 @@ class CSP
       print "\n";
     }
   }
+
+  /**
+   * Gets the solution to the sudoku board in string format.
+   */
+  public function get_soln() {
+    $soln = '';
+    foreach ($this->vars as $v) {
+      $soln .= $v->get_assigned_value();
+    }
+    return $soln;
+  }
 }
 
 /**
@@ -395,6 +406,7 @@ class BT
   private $unasgn_vars;
   private $TRACE;
   private $runtime;
+  private $delta_time;
 
   public function __construct($csp) {
     $this->csp = $csp;
@@ -483,6 +495,10 @@ class BT
     $this->unasgn_vars[] = $var;
   }
 
+  public function get_delta_time() {
+    return $this->delta_time;
+  }
+
   public function bt_search() {
     $this->clear_stats();
     $start_time = microtime(True);
@@ -510,17 +526,20 @@ class BT
 
     if (!$status[0]) {
       print "CSP detected contradiction at root\n";
+      return False;
     } else {
       $status[0] = $this->bt_recurse(1);
     }
 
     $this->restore_values($status[1]);
+    $this->delta_time = microtime(True) - $start_time;
     if (!$status[0]) {
       print "CSP unsolved. Has no solutions.\n";
+      return False;
     } else {
-      $delta_time = microtime(True) - $start_time;
-      print "CSP solved. CPU Time used = {$delta_time}\n";
+      print "CSP solved. CPU Time used = {$this->delta_time}\n";
       $this->csp->print_soln();
+      return True;
     }
   }
 
