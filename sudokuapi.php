@@ -41,7 +41,7 @@ class sudokuAPI extends API
     }
 
     // Parse the input parameter.
-    
+    $input = str_split($this->args[0]);
 
     // Populate the board of variables.
     $scope = [];
@@ -49,7 +49,7 @@ class sudokuAPI extends API
     for ($i = 0; $i < 9; $i++) {
       $row = [];
       for ($j = 0; $j < 9; $j++) {
-        $val = $input[$i][$j];
+        $val = intval($input[$i][$j]);
         if ($val === 0) {
           $row[] = new Variable('Square' . $j . $i, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
         } else {
@@ -92,5 +92,16 @@ class sudokuAPI extends API
     $btracker = new BT($csp);
     $btracker->bt_search();
   }
+}
+
+if (!array_key_exists('HTTP_ORIGIN', $_SERVER)) {
+  $_SERVER['HTTP_ORIGIN'] = $_SERVER['SERVER_NAME'];
+}
+
+try {
+  $API = new sudokuAPI($_REQUEST['request'], $_SERVER['HTTP_ORIGIN']);
+  echo $API->processAPI();
+} catch (Exception $e) {
+  echo json_encode(Array('error' => $e->getMessage()));
 }
 ?>
