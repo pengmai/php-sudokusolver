@@ -49,7 +49,7 @@ class sudokuAPI extends API
     for ($i = 0; $i < 9; $i++) {
       $row = [];
       for ($j = 0; $j < 9; $j++) {
-        $val = intval($input[$i][$j]);
+        $val = intval($input[$i * 9 + $j]);
         if ($val === 0) {
           $row[] = new Variable('Square' . $j . $i, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
         } else {
@@ -90,7 +90,7 @@ class sudokuAPI extends API
     }
 
     $btracker = new BT($csp);
-    $btracker->bt_search();
+    return $btracker->bt_search();
   }
 }
 

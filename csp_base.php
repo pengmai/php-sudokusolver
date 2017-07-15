@@ -142,14 +142,6 @@ class Variable
   public function name() {
     return $this->name;
   }
-
-  public function print_all() {
-    print "Variable " . $this->name . ": Dom = ";
-    print_r($this->dom);
-    print "CurDom = ";
-    print_r($this->curdom);
-    print "\n";
-  }
 }
 
 /**
@@ -369,17 +361,14 @@ class CSP
   }
 
   /**
-   * Prints the solution to the CSP.
+   * Returns the solution to the CSP.
    */
-  public function print_soln() {
-    print "CSP $this->name Assignments = \n";
-    $board = array_chunk($this->vars, 9);
-    for ($i = 0; $i < 9; $i++) {
-      for ($j = 0; $j < 9; $j++) {
-        print $board[$i][$j]->get_assigned_value() . ' ';
-      }
-      print "\n";
+  public function get_soln() {
+    $solution = [];
+    for ($i = 0; $i < sizeof($this->vars); $i++) {
+      $solution[] = $this->vars[$i]->get_assigned_value();
     }
+    return $solution;
   }
 }
 
@@ -393,7 +382,6 @@ class BT
   private $nDecisions;
   private $nPrunings;
   private $unasgn_vars;
-  private $TRACE;
   private $runtime;
 
   public function __construct($csp) {
@@ -401,22 +389,7 @@ class BT
     $this->nDecisions = 0; // Number of variable assignments made during search.
     $this->nPrunings = 0; // Number of value prunings during search.
     $this->unasgn_vars = [];
-    $this->TRACE = False;
     $this->runtime = 0;
-  }
-
-  /**
-   * Turn search trace on.
-   */
-  public function trace_on() {
-    $this->TRACE = True;
-  }
-
-  /**
-   * Turn search trace off.
-   */
-  public function trace_off() {
-    $this->TRACE = False;
   }
 
   /**
@@ -426,11 +399,6 @@ class BT
     $this->nDecisions = 0;
     $this->nPrunings = 0;
     $this->runtime = 0;
-  }
-
-  public function print_stats() {
-    print ("Search made {$nDecisions} variable assignments and pruned " .
-           "{$nPrunings} variable values.");
   }
 
   /**
@@ -500,27 +468,18 @@ class BT
     $status = $this->prop_GAC();
     $this->nPrunings += count($status[1]);
 
-    if ($this->TRACE) {
-      print count($this->unasgn_vars) . " unassigned variables at start of the "
-            . "search\n";
-      print "Root prunings: ";
-      print_r ($status[1]);
-      print "\n";
-    }
-
     if (!$status[0]) {
-      print "CSP detected contradiction at root\n";
+      return ['error' => 'Contradiction detected at root.'];
     } else {
       $status[0] = $this->bt_recurse(1);
     }
 
     $this->restore_values($status[1]);
     if (!$status[0]) {
-      print "CSP unsolved. Has no solutions.\n";
+      return ['message' => 'Puzzle unsolved. Has no solutions'];
     } else {
       $delta_time = microtime(True) - $start_time;
-      print "CSP solved. CPU Time used = {$delta_time}\n";
-      $this->csp->print_soln();
+      return ['solution' => $this->csp->get_soln(), 'time' => $delta_time];
     }
   }
 
@@ -529,34 +488,17 @@ class BT
    * top level returns false, the problem has no solution.
    */
   public function bt_recurse($level) {
-    if ($this->TRACE) {
-      print "bt_recurse level {$level}";
-    }
-
     if (empty($this->unasgn_vars)) {
       // All variables assigned
       return True;
     } else {
       $var = $this->extract_mrv_var();
-      if ($this->TRACE) {
-        print "bt_recurse var = {$var->print_all()}";
-      }
       foreach ($var->cur_domain() as $val) {
-        if ($this->TRACE) {
-          print "bt_recurse trying {$var->print_all()} = {$val}";
-        }
-
         $var->assign($val);
         $this->nDecisions++;
 
         $status = $this->prop_GAC($var);
         $this->nPrunings += count($status[1]);
-
-        if ($this->TRACE) {
-          print "bt_recurse prop status = " . $status[0];
-          print "bt_recurse prop pruned = ";
-          print_r($status[1]);
-        }
 
         if ($status[0]) {
           if ($this->bt_recurse($level + 1)) {
@@ -564,10 +506,6 @@ class BT
           }
         }
 
-        if ($this->TRACE) {
-          print "bt_recurse restoring ";
-          print_r($status[1]);
-        }
         $this->restore_values($status[1]);
         $var->unassign();
       }
