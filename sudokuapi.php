@@ -1,6 +1,6 @@
 <?php
 require_once 'api.class.php';
-require_once 'csp_base.php';
+
 /**
  * A Sudoku solving algorithm that represents the game as a Constraint
  * Satisfaction Problem (CSP) and uses Generalized Arc Consistency to solve the
@@ -40,62 +40,21 @@ class sudokuAPI extends API
     } else if (count($this->args) !== 1) {
       http_response_code(400);
       throw new Exception('Invalid parameter(s)');
-    } else if (!is_numeric($this->args[0]) || strlen($this->args[0]) !== 81) {
+    } else if (strlen($this->args[0]) !== 81) {
       http_response_code(400);
       throw new Exception('Invalid parameter(s)');
     }
 
-    // Parse the input parameter.
-    $input = str_split($this->args[0]);
-
-    // Populate the board of variables.
-    $scope = [];
-    $board = [];
-    for ($i = 0; $i < 9; $i++) {
-      $row = [];
-      for ($j = 0; $j < 9; $j++) {
-        $val = intval($input[$i * 9 + $j]);
-        if ($val === 0) {
-          $row[] = new Variable('Square' . $j . $i, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        } else {
-          $var = new Variable('Square' . $j . $i, [$val]);
-          $var->assign($val);
-          $row[] = $var;
-        }
-      }
-      $board[] = $row;
-      $scope = array_merge($scope, $row);
+    // Execute the command and convert it into a 2D array.
+    // TODO: Add proper error handling.
+    $input = trim($this->args[0]);
+    $solution = `./solver.out {$input}`;
+    if ($solution === 'Error: Puzzle cannot be solved.') {
+      // Puzzle is unsolveable.
+      return ['error' => 'Puzzle cannot be solved.'];
     }
-
-    $csp = new CSP('Sudoku', $scope);
-
-    for ($i = 0; $i < 9; $i++) {
-      // Add the row constraints
-      $row = $board[$i];
-      $con = new Constraint('Row' . $i, $row);
-      $csp->add_constraint($con);
-
-      // Add the column constraints.
-      $col = array_column($board, $i);
-      $con = new Constraint('Col' . $i, $col);
-      $csp->add_constraint($con);
-    }
-
-    for ($i = 0; $i < 9; $i += 3) {
-      for ($j = 0; $j < 9; $j += 3) {
-        $sub_square = [];
-        for ($di = 0; $di < 3; $di++) {
-          for ($dj = 0; $dj < 3; $dj++) {
-            $sub_square[] = $board[$i + $di][$j + $dj];
-          }
-        }
-        $con = new Constraint('SubSquare' . $i . $j, $sub_square);
-        $csp->add_constraint($con);
-      }
-    }
-
-    $btracker = new BT($csp);
-    return $btracker->bt_search();
+    $return = array_chunk(array_map('intval', str_split($solution)), 9);
+    return ['solution' => $return];
   }
 }
 
