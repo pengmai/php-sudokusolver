@@ -29,16 +29,12 @@ abstract class API
      * Allow for CORS, assemble and pre-process the data
      */
     public function __construct($request) {
-        header("Access-Control-Allow-Orgin: *");
-        header("Access-Control-Allow-Methods: *");
+        /*header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Methods: *");*/
         header("Content-Type: application/json");
 
         $this->args = explode('/', rtrim($request, '/'));
         $this->endpoint = array_shift($this->args);
-        /*if (array_key_exists(0, $this->args) && !is_numeric($this->args[0])) {
-            $this->verb = array_shift($this->args);
-        }
-        */
 
         $this->method = $_SERVER['REQUEST_METHOD'];
         if ($this->method == 'POST' && array_key_exists('HTTP_X_HTTP_METHOD', $_SERVER)) {
@@ -78,7 +74,7 @@ abstract class API
 
     private function _response($data, $status = 200) {
         header("HTTP/1.1 " . $status . " " . $this->_requestStatus($status));
-        return json_encode($data, JSON_PRETTY_PRINT);
+        return json_encode($data);
     }
 
     private function _cleanInputs($data) {
@@ -96,6 +92,7 @@ abstract class API
     private function _requestStatus($code) {
         $status = array(
             200 => 'OK',
+            400 => 'Bad Request',
             404 => 'Not Found',
             405 => 'Method Not Allowed',
             500 => 'Internal Server Error',

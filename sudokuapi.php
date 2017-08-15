@@ -1,6 +1,6 @@
 <?php
 require_once 'api.class.php';
-require 'csp_base.php';
+require_once 'csp_base.php';
 /**
  * A Sudoku solving algorithm that represents the game as a Constraint
  * Satisfaction Problem (CSP) and uses Generalized Arc Consistency to solve the
@@ -21,7 +21,8 @@ class sudokuAPI extends API
     if ($this->method == 'GET') {
       return ['text' => 'Peng'];
     } else {
-      return ['error' => 'Only accepts GET requests'];
+      http_response_code(405);
+      throw new Exception('Only accepts GET requests');
     }
   }
 
@@ -31,13 +32,17 @@ class sudokuAPI extends API
    */
   protected function solve() {
     if ($this->method !== 'POST') {
-      return ['error' => 'Only accepts POST requests'];
+      http_response_code(405);
+      throw new Exception('Only accepts POST requests');
+    // } else if (!array_key_exists('Authorization', $this->request)) {
+    //   http_response_code(401);
+    //   throw new Exception('Authorization failed');
     } else if (count($this->args) !== 1) {
-      return ['error' => 'Must have exactly one parameter'];
-    } else if (!is_numeric($this->args[0])) {
-      return ['error' => 'Invalid parameter'];
-    } else if (strlen($this->args[0]) !== 81) {
-      return ['error' => 'Invalid parameter length'];
+      http_response_code(400);
+      throw new Exception('Invalid parameter(s)');
+    } else if (!is_numeric($this->args[0]) || strlen($this->args[0]) !== 81) {
+      http_response_code(400);
+      throw new Exception('Invalid parameter(s)');
     }
 
     // Parse the input parameter.

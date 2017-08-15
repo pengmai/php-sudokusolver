@@ -2,6 +2,8 @@
 /**
   * A class for defining CSP variables.
   */
+// Set time limit to one minute.
+set_time_limit(500);
 class Variable
 {
   private $name;
@@ -368,7 +370,7 @@ class CSP
     for ($i = 0; $i < sizeof($this->vars); $i++) {
       $solution[] = $this->vars[$i]->get_assigned_value();
     }
-    return $solution;
+    return array_chunk($solution, 9);
   }
 }
 
@@ -469,14 +471,15 @@ class BT
     $this->nPrunings += count($status[1]);
 
     if (!$status[0]) {
-      return ['error' => 'Contradiction detected at root.'];
+      throw new Exception('Contradiction detected at root');
     } else {
       $status[0] = $this->bt_recurse(1);
     }
 
     $this->restore_values($status[1]);
     if (!$status[0]) {
-      return ['message' => 'Puzzle unsolved. Has no solutions'];
+      //throw new Exception('Puzzle unsolved. Has no solutions');
+      return ['error' => 'Puzzle unsolved. Has no solutions'];
     } else {
       $delta_time = microtime(True) - $start_time;
       return ['solution' => $this->csp->get_soln(), 'time' => $delta_time];
