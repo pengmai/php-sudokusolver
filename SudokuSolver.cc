@@ -79,7 +79,7 @@ class SudokuSolver {
                     inputMatrix [j][k] = problemMatrix [j][k];
         }
         else {
-            cout << "Error: Puzzle cannot be solved.";
+            // Puzzle cannot be solved.
             exit (1);
         }
     }

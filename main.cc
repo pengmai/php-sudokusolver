@@ -43,6 +43,11 @@
 #include <cstdlib>
 #include <sstream>
 #include <string>
+#include <cerrno>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 #include "SudokuSolver.cc"  // The SudokuSolver class.
 
 using namespace std;
@@ -63,16 +68,95 @@ int main (int argc, char *argv[]) {
     }
 
     initPuzzle (problemMatrix, argv[1]);
-    SudokuSolver SS(problemMatrix);
-
-    // Format the solution into a single string.
-    ostringstream os;
-    for (int row = 0; row < 9; row++) {
-        for (int col = 0; col < 9; col++) {
-          os << problemMatrix[row][col];
-        }
+    
+    // Run the solving algorithm in a child process, set a timeout in the parent.
+    int pipefd[2];
+    int buffer[9][9];
+    sigset_t mask;
+    sigset_t orig_mask;
+    struct timespec timeout;
+    
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGCHLD);
+    
+    // Prevent race conditions by blocking SIGCHLD before fork().
+    if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) {
+        cout << "Signal blocking failed." << endl;
+        return 1;
     }
-    cout << os.str();
+    
+    if (pipe(pipefd) == -1) {
+        cout << "Pipe failed." << endl;
+        return 1;
+    }
+    
+    pid_t pid = fork();
+    if (pid == 0) {
+        // Child process. Close unused read end.
+        close(pipefd[0]);
+        
+        SudokuSolver SS(problemMatrix);
+        
+        write(pipefd[1], problemMatrix, 9 * (9 * sizeof(int)));
+        
+        // Reader will see EOF.
+        close(pipefd[1]);
+    } else if (pid < 0) {
+        cout << "Fork failed." << endl;
+        return -1;
+    } else {
+        // Parent process.
+        close(pipefd[1]);
+        timeout.tv_sec = 5;
+        timeout.tv_nsec = 0;
+        
+        while (1) {
+            if (sigtimedwait(&mask, NULL, &timeout) < 0) {
+                if (errno == EINTR) {
+                    // Interrupted by a signal other than SIGCHLD.
+                    continue;
+                } else if (errno == EAGAIN) {
+                    cout << "Solver timed out." << endl;
+                    kill (pid, SIGKILL);
+                    return 1;
+                } else {
+                    cout << "Error with sigtimedwait" << endl;
+                    return 1;
+                }
+            }
+            
+            break;
+        }
+        
+        int status;
+        if (waitpid(pid, &status, 0) < 0) {
+            cout << "Error with waitpid" << endl;
+            return 1;
+        }
+        
+        if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            cout << !WIFEXITED(status) << endl;
+            cout << WEXITSTATUS(status) << endl;
+            cout << "Error: Puzzle cannot be solved." << endl;
+            return 1;
+        }
+        
+        if (read(pipefd[0], &buffer, 9 * (9 * sizeof(int))) < 0) {
+            cout << "Problem reading from solver" << endl;
+            return 1;
+        }
+        
+        close(pipefd[0]);
+        
+        // Format the solution into a single string.
+        ostringstream os;
+        for (int row = 0; row < 9; row++) {
+            for (int col = 0; col < 9; col++) {
+                os << buffer[row][col];
+            }
+        }
+        cout << os.str();
+    }
 
     return 0;
 }
