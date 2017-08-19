@@ -50,7 +50,7 @@ class sudokuAPI extends API
     $input = trim($this->args[0]);
     $solution = `./solver.out {$input}`;
     if ($solution === 'Error: Puzzle cannot be solved.') {
-      // Puzzle is unsolveable.
+      http_response_code(422);
       return ['error' => 'Puzzle cannot be solved.'];
     }
     $return = array_chunk(array_map('intval', str_split($solution)), 9);

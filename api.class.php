@@ -95,6 +95,7 @@ abstract class API
             400 => 'Bad Request',
             404 => 'Not Found',
             405 => 'Method Not Allowed',
+            422 => 'Unsolveable',
             500 => 'Internal Server Error',
         );
         return ($status[$code])?$status[$code]:$status[500];
