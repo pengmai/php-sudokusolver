@@ -1,2 +1,4 @@
 # Build files
 *.out
+# Mac stuff
+*.DS_Store
