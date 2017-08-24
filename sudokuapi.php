@@ -34,27 +34,26 @@ class sudokuAPI extends API
     if ($this->method !== 'POST') {
       http_response_code(405);
       throw new Exception('Only accepts POST requests');
-    // } else if (!array_key_exists('Authorization', $this->request)) {
-    //   http_response_code(401);
-    //   throw new Exception('Authorization failed');
-    } else if (count($this->args) !== 1) {
-      http_response_code(400);
-      throw new Exception('Invalid parameter(s)');
-    } else if (strlen($this->args[0]) !== 81) {
-      http_response_code(400);
-      throw new Exception('Invalid parameter(s)');
     }
 
-    // Execute the command and convert it into a 2D array.
-    // TODO: Add proper error handling.
-    $input = trim($this->args[0]);
-    $solution = `./solver.out {$input}`;
-    if ($solution === 'Error: Puzzle cannot be solved.') {
-      http_response_code(422);
-      return ['error' => 'Puzzle cannot be solved.'];
+    // Retrieve the body from the POST request.
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (is_string($input) && strlen($input) === 81) {
+      // Execute the command and convert it into a 2D array.
+      $input = trim($input);
+      $solution = `./solver.out {$input}`;
+      if (is_numeric($solution)) {
+        $return = array_chunk(array_map('intval', str_split($solution)), 9);
+        return ['solution' => $return];
+      } else {
+        // Puzzle was unsolved.
+        http_response_code(422);
+        throw new Exception($solution);
+      }
+    } else {
+      http_response_code(400);
+      throw new Exception('Invalid parameter(s)');
     }
-    $return = array_chunk(array_map('intval', str_split($solution)), 9);
-    return ['solution' => $return];
   }
 }
 
