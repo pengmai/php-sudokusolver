@@ -312,24 +312,4 @@ class SudokuSolver {
         proMat[i][j] = 0; // Also reset the value for next iteration.
         return false;
     }
-
-    /*  This method is used to print the problem matrix to console. Mainly used
-     *  for debugging purpose.
-     */
-    void printPuzzle (void) {
-        cout << "-------------------------------------------------------" << endl;
-        for (int row = 0; row < NUM; row++) {
-            cout << "| ";
-            for (int col = 0; col < NUM; col++) {
-                cout << " *" << problemMatrix[row][col] << "* ";
-                if (!((col+1) % BLK))
-                    cout << " | ";
-            }
-            if (!((row+1) % BLK))
-                cout << endl << "-------------------------------------------------------" << endl;
-            else
-                cout << endl;
-        }
-    }
-
 };

@@ -81,12 +81,12 @@ int main (int argc, char *argv[]) {
     
     // Prevent race conditions by blocking SIGCHLD before fork().
     if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) {
-        cout << "Signal blocking failed." << endl;
+        cout << "Signal blocking failed.";
         return 1;
     }
     
     if (pipe(pipefd) == -1) {
-        cout << "Pipe failed." << endl;
+        cout << "Pipe failed.";
         return 1;
     }
     
@@ -102,7 +102,7 @@ int main (int argc, char *argv[]) {
         // Reader will see EOF.
         close(pipefd[1]);
     } else if (pid < 0) {
-        cout << "Fork failed." << endl;
+        cout << "Fork failed.";
         return -1;
     } else {
         // Parent process.
@@ -116,11 +116,11 @@ int main (int argc, char *argv[]) {
                     // Interrupted by a signal other than SIGCHLD.
                     continue;
                 } else if (errno == EAGAIN) {
-                    cout << "Solver timed out." << endl;
+                    cout << "Solver timed out.";
                     kill (pid, SIGKILL);
                     return 1;
                 } else {
-                    cout << "Error with sigtimedwait" << endl;
+                    cout << "Error with sigtimedwait";
                     return 1;
                 }
             }
@@ -130,19 +130,17 @@ int main (int argc, char *argv[]) {
         
         int status;
         if (waitpid(pid, &status, 0) < 0) {
-            cout << "Error with waitpid" << endl;
+            cout << "Error with waitpid";
             return 1;
         }
         
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-            cout << !WIFEXITED(status) << endl;
-            cout << WEXITSTATUS(status) << endl;
-            cout << "Error: Puzzle cannot be solved." << endl;
+            cout << "Error: Puzzle cannot be solved.";
             return 1;
         }
         
         if (read(pipefd[0], &buffer, 9 * (9 * sizeof(int))) < 0) {
-            cout << "Problem reading from solver" << endl;
+            cout << "Problem reading from solver";
             return 1;
         }
         
