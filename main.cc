@@ -135,7 +135,7 @@ int main (int argc, char *argv[]) {
         }
         
         if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-            cout << "Error: Puzzle cannot be solved.";
+            cout << "Puzzle cannot be solved.";
             return 1;
         }
         
